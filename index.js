@@ -2,11 +2,13 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
-const connectionString = require("connection-string").key;
 
-MongoClient.connect(connectionString, {
-  useUnifiedTopology: true,
-})
+MongoClient.connect(
+  "mongodb+srv://khanter:ebash@cluster0.eqpta.mongodb.net/onetech?retryWrites=true&w=majority",
+  {
+    useUnifiedTopology: true,
+  }
+)
   .then((client) => {
     console.log("Connected to Database");
     const db = client.db("onetech");
@@ -14,12 +16,43 @@ MongoClient.connect(connectionString, {
     const categoriesCollection = db.collection("categories");
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(bodyParser.json());
-    app.get("/categories", (req, res) => {
+    app.use((req, res, next) => {
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept"
+      );
+      res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+      next();
+    });
+    app.get("/item", (req, res) => {
+      console.log("hello");
       db.collection("items")
         .find()
         .toArray()
         .then((result) => {
-          result = [...new Set(result.map((item) => item.category))];
+          console.log(result);
+          let max = 0;
+          result.forEach((value, ind) => {
+            console.log(value);
+            if (value.id > max) {
+              max = value.id;
+            }
+          });
+          max++;
+          console.log(result);
+          res.json(max);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    });
+    app.get("/categories", (req, res) => {
+      db.collection("categories")
+        .find()
+        .toArray()
+        .then((result) => {
+          result = [...new Set(result.map((category) => category.category))];
           res.json(result);
         });
     });
@@ -31,7 +64,6 @@ MongoClient.connect(connectionString, {
           result = result.filter(
             (item) => item.category === req.params.category
           );
-          console.log(result);
           res.json(result);
           res.status = 200;
         })
@@ -47,13 +79,18 @@ MongoClient.connect(connectionString, {
         }
       );
     });
+    app.post("/categories", (req, res) => {
+      categoriesCollection.insertOne(req.body).then((res) => {
+        console.log("success");
+        res.status = 200;
+      });
+    });
     app.get("/", (req, res) => {
       db.collection("items")
         .find()
         .toArray()
         .then((result) => {
           res.json(result);
-          console.log(items);
           res.status = 200;
         })
         .catch((err) => {
@@ -96,7 +133,6 @@ MongoClient.connect(connectionString, {
       itemsCollection
         .deleteOne({ id: req.body.id })
         .then((result) => {
-          console.log(req.body);
           res.json("Success");
           res.status = 200;
         })
