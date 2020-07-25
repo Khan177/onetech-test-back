@@ -139,22 +139,22 @@ MongoClient.connect(
         });
     });
     app.delete("/categories", (req, res) => {
-      itemsCollection
-        .updateMany(
-          {
-            category: req.body.category,
-          },
-          {
-            $set: { category: "Без названия" },
-          }
+      itemsCollection.updateMany(
+        {
+          category: req.body.category,
+        },
+        {
+          $set: { category: "Без названия" },
+        }
+      );
+      categoriesCollection.deleteOne({ category: req.body.category });
+      categoriesCollection
+        .update(
+          { category: "Без названия" },
+          { $set: { category: "Без названия" } },
+          { upsert: true }
         )
         .then((result) => res.json(result));
-      categoriesCollection.deleteOne({ category: req.body.category });
-      categoriesCollection.update(
-        { category: "Без названия" },
-        { $set: { category: "Без названия" } },
-        { upsert: true }
-      );
     });
   })
   .catch((error) => console.error(error));
