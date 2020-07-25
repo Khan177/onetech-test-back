@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
+const PORT = process.env.PORT;
 
 MongoClient.connect(
   "mongodb+srv://khanter:ebash@cluster0.eqpta.mongodb.net/onetech?retryWrites=true&w=majority",
@@ -26,15 +27,12 @@ MongoClient.connect(
       next();
     });
     app.get("/item", (req, res) => {
-      console.log("hello");
       db.collection("items")
         .find()
         .toArray()
         .then((result) => {
-          console.log(result);
           let max = 0;
           result.forEach((value, ind) => {
-            console.log(value);
             if (value.id > max) {
               max = value.id;
             }
@@ -48,6 +46,11 @@ MongoClient.connect(
         });
     });
     app.get("/categories", (req, res) => {
+      categoriesCollection.update(
+        { category: "Без названия" },
+        { $set: { category: "Без названия" } },
+        { upsert: true }
+      );
       db.collection("categories")
         .find()
         .toArray()
@@ -56,32 +59,23 @@ MongoClient.connect(
           res.json(result);
         });
     });
-    app.get("/:category", (req, res) => {
+    app.get("/category", (req, res) => {
       db.collection("items")
         .find()
         .toArray()
         .then((result) => {
           result = result.filter(
-            (item) => item.category === req.params.category
+            (item) => item.category === req.query.category
           );
           res.json(result);
           res.status = 200;
         })
         .catch((err) => (res.status = 401));
     });
-    app.put("/:category", (req, res) => {
-      itemsCollection.updateMany(
-        {
-          category: req.params.category,
-        },
-        {
-          $set: { category: null },
-        }
-      );
-    });
     app.post("/categories", (req, res) => {
-      categoriesCollection.insertOne(req.body).then((res) => {
+      categoriesCollection.insertOne(req.body).then((result) => {
         console.log("success");
+        res.json(result);
         res.status = 200;
       });
     });
@@ -115,7 +109,10 @@ MongoClient.connect(
           { id: req.body.id },
           {
             $set: {
-              ...req.body,
+              name: req.body.name,
+              category: req.body.category,
+              buyPrice: req.body.buyPrice,
+              price: req.body.price,
             },
           },
           { upsert: true }
@@ -141,7 +138,25 @@ MongoClient.connect(
           res.status = 401;
         });
     });
+    app.delete("/categories", (req, res) => {
+      itemsCollection.updateMany(
+        {
+          category: req.body.category,
+        },
+        {
+          $set: { category: "Без названия" },
+        }
+      );
+      categoriesCollection.deleteOne({ category: req.body.category });
+      categoriesCollection
+        .update(
+          { category: "Без названия" },
+          { $set: { category: "Без названия" } },
+          { upsert: true }
+        )
+        .then((result) => res.json(result));
+    });
   })
   .catch((error) => console.error(error));
 
-app.listen(3030);
+app.listen(PORT);
