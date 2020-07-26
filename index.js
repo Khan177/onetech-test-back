@@ -4,12 +4,9 @@ const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
 const PORT = process.env.PORT;
 
-MongoClient.connect(
-  "mongodb+srv://khanter:ebash@cluster0.eqpta.mongodb.net/onetech?retryWrites=true&w=majority",
-  {
-    useUnifiedTopology: true,
-  }
-)
+MongoClient.connect(process.env.MONGOKEY, {
+  useUnifiedTopology: true,
+})
   .then((client) => {
     console.log("Connected to Database");
     const db = client.db("onetech");
